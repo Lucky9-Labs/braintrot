@@ -10,7 +10,7 @@ A Chrome extension that replaces spoiler posts on Instagram, YouTube, and X/Twit
 2. Open `chrome://extensions` in Chrome
 3. Toggle **Developer mode** on (top right)
 4. Click **Load unpacked**
-5. Select the `braintrot` folder
+5. Select the `extension` folder
 6. Done — visit Instagram, YouTube, or X to see it in action
 
 ## Usage
@@ -41,15 +41,17 @@ A Chrome extension that replaces spoiler posts on Instagram, YouTube, and X/Twit
 | YouTube | Home feed, Search results, Watch page, Sidebar, Shorts |
 | X / Twitter | Timeline tweets |
 
-## Files
+## Structure
 
 ```
-manifest.json     Extension config
-content.js        Site adapters, quiz cards, mote companion
-content.css       Card styles, animations
-background.js     Dictionary API fetching, quiz cache, context menu
-popup.html/js     Settings UI
-words.js          Curated word list (400+ words)
-logo.svg          Full wordmark
-icon.svg          App icon (handwritten "trot")
+README.md
+extension/
+  manifest.json     Extension config
+  content.js        Site adapters, quiz cards, mote companion
+  content.css       Card styles, animations
+  background.js     Dictionary API fetching, quiz cache, context menu
+  popup.html/js     Settings UI
+  words.js          Curated word list (400+ words)
+  logo.svg          Full wordmark
+  icon.svg          App icon (handwritten "trot")
 ```
