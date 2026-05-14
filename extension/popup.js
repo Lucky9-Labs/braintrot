@@ -70,4 +70,13 @@ $("add-account").addEventListener("click", addAccount);
 $("phrase-input").addEventListener("keydown", (e) => e.key === "Enter" && addPhrase());
 $("account-input").addEventListener("keydown", (e) => e.key === "Enter" && addAccount());
 
+// Mote toggle
+const moteToggle = $("mote-toggle");
+chrome.storage.sync.get({ moteEnabled: false }, (data) => {
+  moteToggle.checked = data.moteEnabled;
+});
+moteToggle.addEventListener("change", () => {
+  chrome.storage.sync.set({ moteEnabled: moteToggle.checked });
+});
+
 loadAndRender();

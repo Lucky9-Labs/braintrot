@@ -1,6 +1,7 @@
 const DEFAULTS = {
   phrases: [],
   whitelist: [],
+  moteEnabled: false,
 };
 
 const FALLBACK_BANK = [
@@ -556,6 +557,7 @@ function springStep(targetX, targetY, dt) {
 // ── Main loop ──
 
 function moteLoop(timestamp) {
+  if (!moteRunning) return;
   ensureMote();
 
   const dt = lastTime ? Math.min((timestamp - lastTime) / 16.67, 3) : 1;
@@ -603,17 +605,21 @@ function moteLoop(timestamp) {
 // ── Triggers (called from quiz handlers) ──
 
 function moteHeadshake() {
+  if (!moteRunning) return;
   expression = { type: "headshake", timer: 0 };
 }
 
 function moteCelebrate() {
+  if (!moteRunning) return;
   expression = { type: "celebrate", timer: 0 };
-  // activeCard will flip, so getOrbitTarget() will naturally pick the next card.
-  // The spring carries the mote there while the bounce expression plays out.
 }
 
-// Start
-setTimeout(() => {
+// Start mote only if enabled
+let moteRunning = false;
+
+function startMote() {
+  if (moteRunning) return;
+  moteRunning = true;
   activeCard = getNextUnansweredCard();
   if (activeCard) {
     const r = activeCard.getBoundingClientRect();
@@ -621,7 +627,25 @@ setTimeout(() => {
     moteY = r.top + window.scrollY + 6;
   }
   requestAnimationFrame(moteLoop);
-}, 1000);
+}
+
+function stopMote() {
+  moteRunning = false;
+  if (moteEl) { moteEl.remove(); moteEl = null; }
+  if (trailCanvas) { trailCanvas.remove(); trailCanvas = null; trailCtx = null; }
+  trailPoints = [];
+  expression = null;
+}
+
+chrome.storage.sync.get(DEFAULTS, (data) => {
+  if (data.moteEnabled) setTimeout(startMote, 1000);
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "sync" && changes.moteEnabled) {
+    changes.moteEnabled.newValue ? startMote() : stopMote();
+  }
+});
 
 // ── Right-click "Hide posts like this" → adds selection/nearby text as block phrase ──
 
