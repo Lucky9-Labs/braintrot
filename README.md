@@ -1,6 +1,6 @@
 # Braintrot
 
-A Chrome extension that replaces spoiler posts on Instagram, YouTube, and X/Twitter with vocabulary quiz cards. Instead of accidentally seeing spoilers, you learn a new word.
+A Chrome extension that replaces spoiler posts on Instagram, YouTube, X/Twitter, and Reddit with vocabulary quiz cards. Instead of accidentally seeing spoilers, you learn a new word.
 
 ![Logo](logo.svg)
 
@@ -11,7 +11,7 @@ A Chrome extension that replaces spoiler posts on Instagram, YouTube, and X/Twit
 3. Toggle **Developer mode** on (top right)
 4. Click **Load unpacked**
 5. Select the `extension` folder
-6. Done — visit Instagram, YouTube, or X to see it in action
+6. Done — visit Instagram, YouTube, X, or Reddit to see it in action
 
 ## Usage
 
@@ -27,7 +27,7 @@ A Chrome extension that replaces spoiler posts on Instagram, YouTube, and X/Twit
 
 ## How it works
 
-- Content script scans posts on Instagram (feed + explore), YouTube (home, search, watch, shorts), and X/Twitter
+- Content script scans posts on Instagram (feed + explore), YouTube (home, search, watch, shorts), X/Twitter, and Reddit (new and old Reddit layouts)
 - Matching posts get overlaid with a vocab quiz card
 - Words and definitions come from the [Free Dictionary API](https://dictionaryapi.dev/) — fetched in batches by a background service worker and cached locally
 - Settings sync across devices via `chrome.storage.sync`
@@ -40,6 +40,7 @@ A Chrome extension that replaces spoiler posts on Instagram, YouTube, and X/Twit
 | Instagram | Feed posts, Explore grid, Reels |
 | YouTube | Home feed, Search results, Watch page, Sidebar, Shorts |
 | X / Twitter | Timeline tweets |
+| Reddit | Home, subreddit, search, and post feeds |
 
 ## Structure
 

@@ -18,6 +18,7 @@ const FALLBACK_BANK = [
 let blockPhrases = [];
 let whitelistHandles = [];
 let fallbackIdx = 0;
+const redditHydrationAttempts = new WeakMap();
 
 // ── Site adapters ──
 // Each adapter knows how to find content items and extract text for matching.
@@ -111,6 +112,106 @@ const SITE_ADAPTERS = {
       return el; // overlay the entire tweet
     },
   },
+
+  reddit: {
+    // New Reddit renders posts as <shreddit-post> custom elements. Old Reddit
+    // and transitional layouts still expose post containers as articles or
+    // elements with data-testid="post-container".
+    findItems() {
+      const results = [];
+      const seen = new Set();
+      const selectors = [
+        'shreddit-post:not([data-braintrot-scanned])',
+        'article[data-testid="post-container"]:not([data-braintrot-scanned])',
+        'div[data-testid="post-container"]:not([data-braintrot-scanned])',
+        '.Post:not([data-braintrot-scanned])',
+        'div.thing[data-type="link"]:not([data-braintrot-scanned])',
+      ];
+
+      document.querySelectorAll(selectors.join(",")).forEach((el) => {
+        // Prefer the regular DOM article wrapper when Reddit places a
+        // shreddit-post custom element inside it. This keeps the quiz card in
+        // the document tree where the extension stylesheet can render it.
+        const isShredditPost = el.tagName.toLowerCase() === "shreddit-post";
+        const wrapper = isShredditPost
+          ? el.closest('article[data-testid="post-container"], div[data-testid="post-container"], article')
+          : null;
+        const candidate = wrapper || el;
+
+        // Avoid scanning a legacy child container as a second post when it is
+        // already covered by a parent shreddit-post element.
+        const parentShreddit = candidate.tagName.toLowerCase() === "shreddit-post" ? null : candidate.closest("shreddit-post");
+        if (parentShreddit) return;
+        if (candidate.dataset.braintrotScanned) return;
+        if (seen.has(candidate)) return;
+        seen.add(candidate);
+        results.push(candidate);
+      });
+      return results;
+    },
+    getText(el) {
+      const parts = [];
+
+      // Reddit's current UI renders shreddit-post content in an open shadow
+      // root. Walk both regular and shadow DOM, skipping our own injected card
+      // so settings rescans never match quiz text.
+      const visited = new Set();
+      const walk = (node) => {
+        if (!node || visited.has(node)) return;
+        visited.add(node);
+
+        if (node.nodeType === 1) {
+          if (node.matches?.(".braintrot-card, .braintrot-card *")) return;
+          ["post-title", "subreddit-prefixed-name", "author"].forEach((name) => {
+            const value = node.getAttribute?.(name);
+            if (value) parts.push(value);
+          });
+          const alt = node.getAttribute?.("alt");
+          if (alt) parts.push(alt);
+          if (node.shadowRoot) walk(node.shadowRoot);
+          for (const child of node.childNodes || []) walk(child);
+        } else if (node.nodeType === 3) {
+          const text = node.textContent?.trim();
+          if (text) parts.push(text);
+        } else {
+          for (const child of node.childNodes || []) walk(child);
+        }
+      };
+      walk(el);
+
+      // Old Reddit exposes title/body in regular light-DOM class names.
+      el.querySelectorAll?.(".title, .md, [data-event-action=\"title\"]").forEach((node) => {
+        const text = node.textContent?.trim();
+        if (text) parts.push(text);
+      });
+      return parts.join(" ");
+    },
+    isReady(el) {
+      const host = el.tagName.toLowerCase() === "shreddit-post" ? el : el.querySelector?.("shreddit-post");
+      if (!host) return true;
+
+      const hasTitle = Boolean(host.getAttribute("post-title") || host.textContent?.trim());
+      const hasShadowRoot = Boolean(host.shadowRoot);
+      const hasShadowText = Boolean(host.shadowRoot?.textContent?.trim());
+      if (hasTitle && (!hasShadowRoot || hasShadowText)) {
+        redditHydrationAttempts.delete(host);
+        return true;
+      }
+
+      // Give custom-element hydration a short window before permanently
+      // marking an empty post as scanned.
+      const attempts = redditHydrationAttempts.get(host) || 0;
+      if (attempts < 15) {
+        redditHydrationAttempts.set(host, attempts + 1);
+        return false;
+      }
+      redditHydrationAttempts.delete(host);
+      return true;
+    },
+    getContainer(el) {
+      return el.closest('article[data-testid="post-container"], div[data-testid="post-container"], article') || el.parentElement || el;
+    },
+  },
 };
 
 function detectSite() {
@@ -118,6 +219,7 @@ function detectSite() {
   if (host.includes("instagram.com")) return "instagram";
   if (host.includes("youtube.com")) return "youtube";
   if (host.includes("x.com") || host.includes("twitter.com")) return "twitter";
+  if (host.includes("reddit.com")) return "reddit";
   return null;
 }
 
@@ -315,7 +417,13 @@ async function scanAll() {
     const items = adapter.findItems();
 
     for (const item of items) {
+      if (adapter.isReady && !adapter.isReady(item)) {
+        setTimeout(debouncedScan, 250);
+        continue;
+      }
       item.dataset.braintrotScanned = "true";
+      const redditHost = currentSite === "reddit" && item.querySelector?.("shreddit-post");
+      if (redditHost) redditHost.dataset.braintrotScanned = "true";
       const text = adapter.getText(item);
       if (!isSpoiler(text)) continue;
 
@@ -657,10 +765,10 @@ chrome.runtime.onMessage.addListener((msg) => {
     if (!text && lastContextTarget) {
       // Walk up to find meaningful text (post title, tweet text, caption, etc.)
       const el = lastContextTarget.closest(
-        '[data-testid="tweetText"], #video-title, h3, [alt], article, a[href*="/p/"]'
+        '[data-testid="tweetText"], #video-title, [data-testid="post-title"], [slot="title"], h3, [alt], article, shreddit-post, a[href*="/p/"]'
       );
       if (el) {
-        text = el.getAttribute("alt") || el.textContent || "";
+        text = el.getAttribute("alt") || el.getAttribute("post-title") || el.textContent || "";
         text = text.trim().slice(0, 80);
       }
     }

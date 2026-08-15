@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Braintrot",
   "version": "1.0",
-  "description": "Replace spoiler posts with vocab quizzes on Instagram, YouTube, and X",
+  "description": "Replace spoiler posts with vocab quizzes on Instagram, YouTube, X, and Reddit",
   "permissions": ["storage", "alarms", "contextMenus"],
   "host_permissions": ["https://api.dictionaryapi.dev/*"],
   "action": {
@@ -21,7 +21,12 @@
         "https://www.instagram.com/*",
         "https://www.youtube.com/*",
         "https://x.com/*",
-        "https://twitter.com/*"
+        "https://twitter.com/*",
+        "https://reddit.com/*",
+        "https://www.reddit.com/*",
+        "https://new.reddit.com/*",
+        "https://m.reddit.com/*",
+        "https://old.reddit.com/*"
       ],
       "js": ["content.js"],
       "css": ["content.css"],
@@ -31,7 +36,7 @@
   "web_accessible_resources": [
     {
       "resources": ["logo.svg"],
-      "matches": ["https://www.instagram.com/*", "https://www.youtube.com/*", "https://x.com/*", "https://twitter.com/*"]
+      "matches": ["https://www.instagram.com/*", "https://www.youtube.com/*", "https://x.com/*", "https://twitter.com/*", "https://reddit.com/*", "https://www.reddit.com/*", "https://new.reddit.com/*", "https://m.reddit.com/*", "https://old.reddit.com/*"]
     }
   ],
   "icons": {

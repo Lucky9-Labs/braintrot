@@ -234,3 +234,12 @@ article[data-braintrot] {
 article[data-testid="tweet"][data-braintrot] {
   min-height: 120px;
 }
+
+/* ── Reddit-specific: cover the whole post ── */
+shreddit-post[data-braintrot],
+article[data-testid="post-container"][data-braintrot],
+div[data-testid="post-container"][data-braintrot],
+.Post[data-braintrot],
+div.thing[data-type="link"][data-braintrot] {
+  min-height: 180px;
+}

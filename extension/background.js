@@ -153,6 +153,11 @@ chrome.runtime.onInstalled.addListener(() => {
       "https://www.youtube.com/*",
       "https://x.com/*",
       "https://twitter.com/*",
+      "https://reddit.com/*",
+      "https://www.reddit.com/*",
+      "https://new.reddit.com/*",
+      "https://m.reddit.com/*",
+      "https://old.reddit.com/*",
     ],
   });
 });
