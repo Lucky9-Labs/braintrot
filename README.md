@@ -11,7 +11,7 @@ A Chrome extension that replaces spoiler posts on Instagram, YouTube, X/Twitter,
 3. Toggle **Developer mode** on (top right)
 4. Click **Load unpacked**
 5. Select the `extension` folder
-6. Done — visit Instagram, YouTube, X, or Reddit to see it in action
+6. Done — visit Instagram, YouTube, X, Reddit, or Facebook to see it in action
 
 ## Usage
 
@@ -27,7 +27,7 @@ A Chrome extension that replaces spoiler posts on Instagram, YouTube, X/Twitter,
 
 ## How it works
 
-- Content script scans posts on Instagram (feed + explore), YouTube (home, search, watch, shorts), X/Twitter, and Reddit (new and old Reddit layouts)
+- Content script scans posts on Instagram (feed + explore), YouTube (home, search, watch, shorts), X/Twitter, Reddit (new and old Reddit layouts), and Facebook (feed + Marketplace listings)
 - Matching posts get overlaid with a vocab quiz card
 - Words and definitions come from the [Free Dictionary API](https://dictionaryapi.dev/) — fetched in batches by a background service worker and cached locally
 - Settings sync across devices via `chrome.storage.sync` (block material and whitelisted accounts)
@@ -41,6 +41,7 @@ A Chrome extension that replaces spoiler posts on Instagram, YouTube, X/Twitter,
 | YouTube | Home feed, Search results, Watch page, Sidebar, Shorts |
 | X / Twitter | Timeline tweets |
 | Reddit | Home, subreddit, search, and post feeds |
+| Facebook | Feed posts and Marketplace listings |
 
 ## Structure
 

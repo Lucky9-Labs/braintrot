@@ -21,6 +21,7 @@ let whitelistHandles = [];
 let blockedSubreddits = [];
 let fallbackIdx = 0;
 const redditHydrationAttempts = new WeakMap();
+const facebookHydrationAttempts = new WeakMap();
 
 // ── Site adapters ──
 // Each adapter knows how to find content items and extract text for matching.
@@ -229,6 +230,73 @@ const SITE_ADAPTERS = {
       return el.closest('article[data-testid="post-container"], div[data-testid="post-container"], article') || el.parentElement || el;
     },
   },
+
+  facebook: {
+    // Facebook feed posts and Marketplace cards both commonly use
+    // role="article". Marketplace item links provide a second, more specific
+    // signal when the surrounding card has no role attribute.
+    findItems() {
+      const results = [];
+      const seen = new Set();
+      const selectors = [
+        '[role="article"]:not([data-braintrot-scanned])',
+        '[data-pagelet^="FeedUnit"]:not([data-braintrot-scanned])',
+        'a[href*="/marketplace/item/"]:not([data-braintrot-scanned])',
+      ];
+
+      document.querySelectorAll(selectors.join(",")).forEach((el) => {
+        const isMarketplaceLink = el.matches('a[href*="/marketplace/item/"]');
+        let candidate = isMarketplaceLink
+          ? el.closest('[role="article"], [data-pagelet^="FeedUnit"]') || el.parentElement || el
+          : el;
+        const feedUnit = candidate.matches?.('[data-pagelet^="FeedUnit"]')
+          ? candidate
+          : candidate.closest?.('[data-pagelet^="FeedUnit"]');
+        if (feedUnit) candidate = feedUnit;
+        if (candidate.parentElement?.closest?.('[role="article"]')) return;
+        if (candidate.parentElement?.closest?.('[data-pagelet^="FeedUnit"]')) return;
+        if (candidate.dataset.braintrotScanned || seen.has(candidate)) return;
+        seen.add(candidate);
+        results.push(candidate);
+      });
+      return results;
+    },
+    getText(el) {
+      // Remove an existing quiz card before rescans so its word/definitions
+      // cannot satisfy a block phrase.
+      let source = el;
+      if (el.querySelector?.(".braintrot-card")) {
+        source = el.cloneNode(true);
+        source.querySelectorAll(".braintrot-card").forEach((card) => card.remove());
+      }
+      const parts = [];
+      const visible = source.innerText || source.textContent || "";
+      if (visible.trim()) parts.push(visible.trim());
+      source.querySelectorAll?.("img[alt], [aria-label], [data-content]").forEach((node) => {
+        const text = node.getAttribute("alt") || node.getAttribute("aria-label") || node.getAttribute("data-content");
+        if (text) parts.push(text.trim());
+      });
+      return parts.join(" ");
+    },
+    isReady(el) {
+      if (this.getText(el).trim()) {
+        facebookHydrationAttempts.delete(el);
+        return true;
+      }
+      const attempts = facebookHydrationAttempts.get(el) || 0;
+      if (attempts < 20) {
+        facebookHydrationAttempts.set(el, attempts + 1);
+        return false;
+      }
+      facebookHydrationAttempts.delete(el);
+      return true;
+    },
+    getContainer(el) {
+      return el.matches?.('a[href*="/marketplace/item/"]')
+        ? el.closest('[role="article"], [data-pagelet^="FeedUnit"]') || el.parentElement || el
+        : el;
+    },
+  },
 };
 
 function detectSite() {
@@ -237,6 +305,7 @@ function detectSite() {
   if (host.includes("youtube.com")) return "youtube";
   if (host.includes("x.com") || host.includes("twitter.com")) return "twitter";
   if (host.includes("reddit.com")) return "reddit";
+  if (host.includes("facebook.com")) return "facebook";
   return null;
 }
 
@@ -797,7 +866,7 @@ chrome.runtime.onMessage.addListener((msg) => {
     if (!text && lastContextTarget) {
       // Walk up to find meaningful text (post title, tweet text, caption, etc.)
       const el = lastContextTarget.closest(
-        '[data-testid="tweetText"], #video-title, [data-testid="post-title"], [slot="title"], h3, [alt], article, shreddit-post, a[href*="/p/"]'
+        '[data-testid="tweetText"], #video-title, [data-testid="post-title"], [slot="title"], h3, [alt], [role="article"], article, shreddit-post, a[href*="/p/"], a[href*="/marketplace/item/"]'
       );
       if (el) {
         text = el.getAttribute("alt") || el.getAttribute("post-title") || el.textContent || "";

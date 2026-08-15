@@ -243,3 +243,9 @@ div[data-testid="post-container"][data-braintrot],
 div.thing[data-type="link"][data-braintrot] {
   min-height: 180px;
 }
+
+/* ── Facebook / Marketplace: cover the post or listing card ── */
+[role="article"][data-braintrot],
+[data-pagelet^="FeedUnit"][data-braintrot] {
+  min-height: 160px;
+}

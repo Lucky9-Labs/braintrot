@@ -158,6 +158,10 @@ chrome.runtime.onInstalled.addListener(() => {
       "https://new.reddit.com/*",
       "https://m.reddit.com/*",
       "https://old.reddit.com/*",
+      "https://facebook.com/*",
+      "https://www.facebook.com/*",
+      "https://m.facebook.com/*",
+      "https://web.facebook.com/*",
     ],
   });
 });
