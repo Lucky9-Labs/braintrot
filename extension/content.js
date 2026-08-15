@@ -250,6 +250,11 @@ function buildRegex(phrase) {
   return new RegExp(`\\b${escaped}\\b`, "i");
 }
 
+function parseBlockedSubredditMaterial(material) {
+  const match = material.trim().match(/^r\/([a-z0-9_-]+)$/i);
+  return match ? match[1].toLowerCase() : null;
+}
+
 function isSpoiler(text, item) {
   const lower = text.toLowerCase();
   for (const handle of whitelistHandles) {
@@ -503,11 +508,14 @@ function debouncedScan() {
 
 function loadSettings(callback) {
   chrome.storage.sync.get(DEFAULTS, (data) => {
-    blockPhrases = data.phrases.map(buildRegex);
+    const legacySubredditMaterials = (data.subreddits || []).map((name) => {
+      const normalized = name.trim().toLowerCase();
+      return normalized.startsWith("r/") ? normalized : `r/${normalized}`;
+    });
+    const materials = [...data.phrases, ...legacySubredditMaterials];
+    blockedSubreddits = [...new Set(materials.map(parseBlockedSubredditMaterial).filter(Boolean))];
+    blockPhrases = materials.filter((material) => !parseBlockedSubredditMaterial(material)).map(buildRegex);
     whitelistHandles = data.whitelist.map((h) => h.toLowerCase());
-    blockedSubreddits = (data.subreddits || [])
-      .map((name) => name.toLowerCase().replace(/^\s*r\//, "").trim())
-      .filter(Boolean);
     console.log(
       `[Braintrot] (${currentSite}) Loaded ${blockPhrases.length} phrase(s), ${blockedSubreddits.length} subreddit(s), ${whitelistHandles.length} whitelisted`
     );
@@ -779,7 +787,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-// ── Right-click "Hide posts like this" → adds selection/nearby text as block phrase ──
+// ── Right-click "Hide posts like this" → adds selection/nearby text as block material ──
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "addBlockPhrase") {
@@ -806,7 +814,7 @@ chrome.runtime.onMessage.addListener((msg) => {
       if (!data.phrases.includes(phrase)) {
         data.phrases.push(phrase);
         chrome.storage.sync.set({ phrases: data.phrases });
-        console.log(`[Braintrot] Added block phrase: "${phrase}"`);
+        console.log(`[Braintrot] Added block material: "${phrase}"`);
       }
     });
   }

@@ -107,11 +107,6 @@
     color: #27ae60;
     border: 1px solid #c4e8d4;
   }
-  .tag.subreddit {
-    background: #fff3df;
-    color: #c77800;
-    border: 1px solid #f1d5a6;
-  }
   .tag .remove {
     cursor: pointer;
     font-size: 14px;
@@ -167,23 +162,13 @@
 </header>
 
 <div class="section">
-  <div class="section-title">Block phrases</div>
+  <div class="section-title">Block material</div>
   <div class="input-row">
-    <input type="text" id="phrase-input" placeholder="e.g. spoiler, finale, ending">
+    <input type="text" id="phrase-input" placeholder="e.g. spoiler, finale, r/movies">
     <button class="add-btn" id="add-phrase">Add</button>
   </div>
   <div class="tag-list" id="phrase-list"></div>
-  <div class="hint">Matching posts get replaced with a vocab quiz card.</div>
-</div>
-
-<div class="section">
-  <div class="section-title">Blocked subreddits</div>
-  <div class="input-row">
-    <input type="text" id="subreddit-input" placeholder="e.g. movies, gaming, r/news">
-    <button class="add-btn" id="add-subreddit">Add</button>
-  </div>
-  <div class="tag-list" id="subreddit-list"></div>
-  <div class="hint">Every post from these communities gets replaced with a vocab quiz.</div>
+  <div class="hint">Phrases match post text. Use <code>r/name</code> to block an entire subreddit.</div>
 </div>
 
 <div class="section">

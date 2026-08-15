@@ -16,7 +16,7 @@ function renderTags(list, containerId, type, onRemove) {
   for (const item of list) {
     const tag = document.createElement("span");
     tag.className = `tag ${type}`;
-    const prefix = type === "account" ? "@" : type === "subreddit" ? "r/" : "";
+    const prefix = type === "account" ? "@" : "";
     const label = document.createTextNode(prefix + item);
     tag.appendChild(label);
     const remove = document.createElement("span");
@@ -28,31 +28,51 @@ function renderTags(list, containerId, type, onRemove) {
   }
 }
 
+function normalizeSubredditInput(value) {
+  let val = value.trim().toLowerCase();
+  const match =
+    val.match(/^https?:\/\/(?:www\.|old\.|new\.|m\.)?reddit\.com\/r\/([a-z0-9_-]+)(?:[/?#\s]|$)/) ||
+    val.match(/^\/?r\/([a-z0-9_-]+)(?:[/?#\s]|$)/);
+  return match ? `r/${match[1]}` : "";
+}
+
+function getMaterials(data) {
+  const legacy = (data.subreddits || [])
+    .map((name) => normalizeSubredditInput(name.trim().toLowerCase().startsWith("r/") ? name : `r/${name}`))
+    .filter(Boolean);
+  return [...new Set([...data.phrases, ...legacy])];
+}
+
+function saveMaterials(materials, callback) {
+  chrome.storage.sync.set({ phrases: materials, subreddits: [] }, callback);
+}
+
 function loadAndRender() {
   chrome.storage.sync.get(DEFAULTS, (data) => {
-    renderTags(data.phrases, "phrase-list", "phrase", (item) => {
-      data.phrases = data.phrases.filter((p) => p !== item);
-      chrome.storage.sync.set({ phrases: data.phrases }, loadAndRender);
-    });
-    renderTags(data.subreddits, "subreddit-list", "subreddit", (item) => {
-      data.subreddits = data.subreddits.filter((name) => name !== item);
-      chrome.storage.sync.set({ subreddits: data.subreddits }, loadAndRender);
+    const materials = getMaterials(data);
+    if ((data.subreddits || []).length > 0 || materials.length !== data.phrases.length) {
+      saveMaterials(materials);
+    }
+    renderTags(materials, "phrase-list", "phrase", (item) => {
+      saveMaterials(materials.filter((material) => material !== item), loadAndRender);
     });
     renderTags(data.whitelist, "account-list", "account", (item) => {
       data.whitelist = data.whitelist.filter((a) => a !== item);
       chrome.storage.sync.set({ whitelist: data.whitelist }, loadAndRender);
     });
-    $("status").textContent = `${data.phrases.length} phrase(s) blocked \u00b7 ${data.subreddits.length} subreddit(s) blocked \u00b7 ${data.whitelist.length} whitelisted`;
+    $("status").textContent = `${materials.length} item(s) blocked \u00b7 ${data.whitelist.length} whitelisted`;
   });
 }
 
 function addPhrase() {
-  const val = $("phrase-input").value.trim().toLowerCase();
+  const raw = $("phrase-input").value.trim().toLowerCase();
+  const val = normalizeSubredditInput(raw) || raw;
   if (!val) return;
   chrome.storage.sync.get(DEFAULTS, (data) => {
-    if (!data.phrases.includes(val)) {
-      data.phrases.push(val);
-      chrome.storage.sync.set({ phrases: data.phrases }, loadAndRender);
+    const materials = getMaterials(data);
+    if (!materials.includes(val)) {
+      materials.push(val);
+      saveMaterials(materials, loadAndRender);
     }
     $("phrase-input").value = "";
   });
@@ -70,26 +90,10 @@ function addAccount() {
   });
 }
 
-function addSubreddit() {
-  let val = $("subreddit-input").value.trim().toLowerCase();
-  val = val.replace(/^https?:\/\/(?:www\.|old\.|new\.|m\.)?reddit\.com\/r\//, "");
-  val = val.replace(/^\/?r\//, "").split(/[/?#\s]/, 1)[0];
-  if (!/^[a-z0-9_-]+$/.test(val)) return;
-  chrome.storage.sync.get(DEFAULTS, (data) => {
-    if (!data.subreddits.includes(val)) {
-      data.subreddits.push(val);
-      chrome.storage.sync.set({ subreddits: data.subreddits }, loadAndRender);
-    }
-    $("subreddit-input").value = "";
-  });
-}
-
 $("add-phrase").addEventListener("click", addPhrase);
 $("add-account").addEventListener("click", addAccount);
-$("add-subreddit").addEventListener("click", addSubreddit);
 $("phrase-input").addEventListener("keydown", (e) => e.key === "Enter" && addPhrase());
 $("account-input").addEventListener("keydown", (e) => e.key === "Enter" && addAccount());
-$("subreddit-input").addEventListener("keydown", (e) => e.key === "Enter" && addSubreddit());
 
 // Mote toggle
 const moteToggle = $("mote-toggle");

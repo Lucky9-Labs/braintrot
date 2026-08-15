@@ -15,9 +15,7 @@ A Chrome extension that replaces spoiler posts on Instagram, YouTube, X/Twitter,
 
 ## Usage
 
-**Add block phrases** — Click the Braintrot extension icon in your toolbar to open the popup. Type phrases you want to filter (e.g. "game of thrones", "finale") and click Add. Any post whose caption, title, or text matches a phrase gets replaced with a vocab quiz card.
-
-**Block subreddits** — Add a community name such as `movies`, `gaming`, or `r/news` in the Blocked subreddits section. Posts from that subreddit get replaced regardless of their title, unless the account is whitelisted.
+**Add block material** — Click the Braintrot extension icon in your toolbar to open the popup. Type phrases you want to filter (e.g. "game of thrones", "finale") or a subreddit path such as `r/movies`, then click Add. Matching posts get replaced with a vocab quiz card; `r/name` blocks the entire subreddit.
 
 **Right-click to block** — Select text on any post, right-click, and choose "Braintrot: hide posts like this" to instantly add it as a block phrase.
 
@@ -32,7 +30,7 @@ A Chrome extension that replaces spoiler posts on Instagram, YouTube, X/Twitter,
 - Content script scans posts on Instagram (feed + explore), YouTube (home, search, watch, shorts), X/Twitter, and Reddit (new and old Reddit layouts)
 - Matching posts get overlaid with a vocab quiz card
 - Words and definitions come from the [Free Dictionary API](https://dictionaryapi.dev/) — fetched in batches by a background service worker and cached locally
-- Settings sync across devices via `chrome.storage.sync` (phrases, blocked subreddits, and whitelisted accounts)
+- Settings sync across devices via `chrome.storage.sync` (block material and whitelisted accounts)
 - A spring-physics mote companion orbits the active card, shakes its head on wrong answers, and celebrates on correct ones
 
 ## Sites supported
