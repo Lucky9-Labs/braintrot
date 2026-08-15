@@ -1,6 +1,7 @@
 const DEFAULTS = {
   phrases: [],
   whitelist: [],
+  subreddits: [],
   moteEnabled: false,
 };
 
@@ -17,6 +18,7 @@ const FALLBACK_BANK = [
 
 let blockPhrases = [];
 let whitelistHandles = [];
+let blockedSubreddits = [];
 let fallbackIdx = 0;
 const redditHydrationAttempts = new WeakMap();
 
@@ -186,6 +188,21 @@ const SITE_ADAPTERS = {
       });
       return parts.join(" ");
     },
+    getSubreddit(el) {
+      const host = el.tagName.toLowerCase() === "shreddit-post" ? el : el.querySelector?.("shreddit-post");
+      const subredditLink = el.querySelector?.(
+        '[data-testid="subreddit-name"], a.subreddit, .subreddit a, a[data-click-id="subreddit"], a[href^="/r/"][class*="subreddit"]'
+      );
+      const raw =
+        host?.getAttribute("subreddit-prefixed-name") ||
+        host?.getAttribute("subreddit-name") ||
+        el.getAttribute?.("data-subreddit") ||
+        subredditLink?.textContent ||
+        subredditLink?.getAttribute?.("href") ||
+        "";
+      const match = raw.match(/(?:^|\/)r\/([^/?#]+)/i);
+      return (match?.[1] || raw).trim().toLowerCase();
+    },
     isReady(el) {
       const host = el.tagName.toLowerCase() === "shreddit-post" ? el : el.querySelector?.("shreddit-post");
       if (!host) return true;
@@ -233,10 +250,14 @@ function buildRegex(phrase) {
   return new RegExp(`\\b${escaped}\\b`, "i");
 }
 
-function isSpoiler(text) {
+function isSpoiler(text, item) {
   const lower = text.toLowerCase();
   for (const handle of whitelistHandles) {
     if (lower.includes(`@${handle}`) || lower.includes(handle)) return false;
+  }
+  if (currentSite === "reddit" && blockedSubreddits.length > 0) {
+    const subreddit = adapter?.getSubreddit?.(item);
+    if (subreddit && blockedSubreddits.includes(subreddit)) return true;
   }
   for (const re of blockPhrases) {
     if (re.test(text)) return true;
@@ -425,10 +446,11 @@ async function scanAll() {
       const redditHost = currentSite === "reddit" && item.querySelector?.("shreddit-post");
       if (redditHost) redditHost.dataset.braintrotScanned = "true";
       const text = adapter.getText(item);
-      if (!isSpoiler(text)) continue;
+      if (!isSpoiler(text, item)) continue;
 
       const container = adapter.getContainer(item);
       container.dataset.braintrot = "true";
+      if (container.querySelector(".braintrot-card")) continue;
 
       const entry = await getQuizEntry();
       const card = buildCard(entry);
@@ -446,11 +468,10 @@ async function scanAll() {
       // Find the original item (the scanned element)
       const item = container.closest("[data-braintrot-scanned]") || container;
       const text = adapter.getText(item);
-      if (!isSpoiler(text)) {
+      if (!isSpoiler(text, item)) {
         delete container.dataset.braintrot;
         observer?.disconnect();
-        const card = container.querySelector(".braintrot-card");
-        if (card) card.remove();
+        container.querySelectorAll(".braintrot-card").forEach((card) => card.remove());
         observer?.observe(document.body, { childList: true, subtree: true });
         // Allow re-scanning
         delete item.dataset.braintrotScanned;
@@ -484,8 +505,11 @@ function loadSettings(callback) {
   chrome.storage.sync.get(DEFAULTS, (data) => {
     blockPhrases = data.phrases.map(buildRegex);
     whitelistHandles = data.whitelist.map((h) => h.toLowerCase());
+    blockedSubreddits = (data.subreddits || [])
+      .map((name) => name.toLowerCase().replace(/^\s*r\//, "").trim())
+      .filter(Boolean);
     console.log(
-      `[Braintrot] (${currentSite}) Loaded ${blockPhrases.length} phrase(s), ${whitelistHandles.length} whitelisted`
+      `[Braintrot] (${currentSite}) Loaded ${blockPhrases.length} phrase(s), ${blockedSubreddits.length} subreddit(s), ${whitelistHandles.length} whitelisted`
     );
     if (callback) callback();
   });
@@ -501,7 +525,7 @@ loadSettings(() => {
 
 // Real-time settings updates from popup
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "sync" && (changes.phrases || changes.whitelist)) {
+  if (area === "sync" && (changes.phrases || changes.whitelist || changes.subreddits)) {
     // Reset scanned flags so everything gets re-evaluated
     document.querySelectorAll("[data-braintrot-scanned]").forEach((el) => {
       delete el.dataset.braintrotScanned;

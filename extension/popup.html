@@ -107,6 +107,11 @@
     color: #27ae60;
     border: 1px solid #c4e8d4;
   }
+  .tag.subreddit {
+    background: #fff3df;
+    color: #c77800;
+    border: 1px solid #f1d5a6;
+  }
   .tag .remove {
     cursor: pointer;
     font-size: 14px;
@@ -169,6 +174,16 @@
   </div>
   <div class="tag-list" id="phrase-list"></div>
   <div class="hint">Matching posts get replaced with a vocab quiz card.</div>
+</div>
+
+<div class="section">
+  <div class="section-title">Blocked subreddits</div>
+  <div class="input-row">
+    <input type="text" id="subreddit-input" placeholder="e.g. movies, gaming, r/news">
+    <button class="add-btn" id="add-subreddit">Add</button>
+  </div>
+  <div class="tag-list" id="subreddit-list"></div>
+  <div class="hint">Every post from these communities gets replaced with a vocab quiz.</div>
 </div>
 
 <div class="section">
